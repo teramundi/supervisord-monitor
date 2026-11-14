@@ -41,6 +41,84 @@ vim application/config/supervisor.php
 5.Configure your web server to point one of your vhosts to 'public_html' directory.
 6.Open web browser and enter your vhost url.
 
+### Nginx and PHP-FPM
+
+The following example serves the monitor at the root of a dedicated host.
+Replace the domain, paths and PHP-FPM address for your installation. Configure
+HTTPS and restrict access: this application can start and stop processes.
+
+```nginx
+server {
+    listen 80;
+    server_name monitor.example.test;
+    root /var/www/supervisord-monitor/public_html;
+    index index.php;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        try_files $uri =404;
+        include /etc/nginx/fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass 127.0.0.1:9000;
+    }
+}
+```
+
+The missing `env.conf` mentioned in some external examples is not required by
+this project. The PHP-FPM address may instead be a Unix socket. Protect the
+entire vhost, including PHP and static files, using your access-control system.
+
+### Installing under a URL prefix
+
+By default the application detects its base URL from the web server's host and
+`SCRIPT_NAME`. For example, to serve it at `/monitor/` instead of `/`, the
+following Nginx locations can be placed in your existing server block:
+
+```nginx
+location = /monitor { return 301 /monitor/; }
+
+location = /monitor/index.php {
+    include /etc/nginx/fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME /var/www/supervisord-monitor/public_html/index.php;
+    fastcgi_param SCRIPT_NAME /monitor/index.php;
+    fastcgi_pass 127.0.0.1:9000;
+}
+
+location ~ ^/monitor/.*\.php(?:/|$) { return 404; }
+
+location /monitor/ {
+    alias /var/www/supervisord-monitor/public_html/;
+    index index.php;
+    try_files $uri $uri/ /monitor/index.php?$query_string;
+}
+```
+
+Configure authentication for all `/monitor/` locations. If the application is
+behind a TLS-terminating proxy, or your server does not provide the expected
+`SCRIPT_NAME`, explicitly set `$config['base_url']` in
+`application/config/config.php`, for example to `https://monitor.example.test/monitor/`.
+Use a trusted, fixed host value in your web-server configuration.
+
+The link from the dashboard to Supervisor's native interface does not include
+credentials. If the native interface requires authentication, the browser must
+authenticate separately.
+
+### Regression checks
+
+Run the lightweight checks with a PHP CLI interpreter:
+
+```sh
+php tests/regression.php
+php tests/config_reference.php
+```
+
+These checks exercise dashboard error handling, absent stderr logs, credential
+redaction in links, base URL generation, and configuration reference handling.
+They do not replace an end-to-end test of the web server and Supervisor controls.
+
 
 ## Redmine integration
 1.Open configuration file:

@@ -144,3 +144,8 @@ body{
 .icon-orange {
   background-image: url("../img/glyphicons-halflings-orange.png") !important;
 }
+
+.stderr-note {
+  display: block;
+  color: #666;
+}

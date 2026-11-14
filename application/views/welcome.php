@@ -60,12 +60,9 @@
 				$alert = false;
 				foreach($list as $name=>$procs){
 					$parsed_url = parse_url($cfg[$name]['url']);
-					if ( isset($cfg[$name]['username']) && isset($cfg[$name]['password']) ){
-						$base_url = 'http://' . $cfg[$name]['username'] . ':' . $cfg[$name]['password'] . '@';
-					}else{
-						$base_url = 'http://';
-					}
-					$ui_url = $base_url . $parsed_url['host'] . ':' . $cfg[$name]['port']. '/';
+					// Never expose RPC credentials in the link to Supervisor's web UI.
+					$scheme = isset($parsed_url['scheme']) && $parsed_url['scheme'] === 'https' ? 'https' : 'http';
+					$ui_url = $scheme . '://' . $parsed_url['host'] . ':' . $cfg[$name]['port'] . '/';
 				?>
 				<div class="span<?php echo ($this->config->item('supervisor_cols')==2?'6':'4');?>">
 					<table class="table table-bordered table-condensed table-striped monitor-table">
@@ -75,10 +72,11 @@
 							<col class="col-actions" />
 						</colgroup>
 					<tr><th colspan="3">
-						<a href="<?php echo $ui_url; ?>"><?php echo $name; ?></a> <?php if($this->config->item('show_host')){ ?><i><?php echo $parsed_url['host']; ?></i><?php } ?>
+						<a href="<?php echo htmlspecialchars($ui_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></a> <?php if($this->config->item('show_host')){ ?><i><?php echo htmlspecialchars($parsed_url['host'], ENT_QUOTES, 'UTF-8'); ?></i><?php } ?>
 						<?php
 						if(isset($cfg[$name]['username'])){echo '<i class="icon-lock icon-green" style="color:blue" title="Authenticated server connection"></i>';}
-						echo '&nbsp;<i>'.$version[$name].'</i>';
+						$server_version = is_array($version[$name]) ? 'Unavailable' : $version[$name];
+						echo '&nbsp;<i>'.htmlspecialchars($server_version, ENT_QUOTES, 'UTF-8').'</i>';
 						if(!isset($procs['error'])){
 						?>
 						<span class="server-btns pull-right">
@@ -92,25 +90,28 @@
 					</th></tr>
 					<?php
 					$CI = &get_instance();
-					foreach($procs as $item){
+					if (isset($procs['error'])) {
+						echo '<tr><td colspan="3">'.htmlspecialchars($procs['error'], ENT_QUOTES, 'UTF-8').'</td></tr>';
+						echo '<tr><td colspan="3">For troubleshooting <a href="https://github.com/mlazarov/supervisord-monitor#troubleshooting" target="_blank">check this guide</a></td></tr>';
+					}
+					foreach((isset($procs['error']) ? array() : $procs) as $item){
+						if (!is_array($item) || !isset($item['group'], $item['name'], $item['statename'])) {
+							echo '<tr><td colspan="3">Invalid process information returned by Supervisor.</td></tr>';
+							continue;
+						}
 
 						if($item['group'] != $item['name']) $item_name = $item['group'].":".$item['name'];
 						else $item_name = $item['name'];
 						
 						$check = $CI->_request($name,'readProcessStderrLog',array($item_name,-1000,0));
-						// redirect_stderr=true intentionally has no separate stderr logfile.
-						if(is_array($check) && isset($check['error']) && $check['error'] == 'NO_FILE'){
+						$log_note = '';
+						// NO_FILE can mean redirected stderr, disabled logging, or a missing file.
+						if(is_array($check) && isset($check['error']) && preg_match('/^NO_FILE(?:\s*:|$)/', $check['error'])){
+							$log_note = 'No stderr log available';
 							$check = '';
 						}
 						elseif(is_array($check)) $check = print_r($check,1);
 						
-						if(!is_array($item)){
-								// Not having array means that we have error.
-								echo '<tr><td colspan="3">'.$item.'</td></tr>';
-								echo '<tr><td colspan="3">For Troubleshooting <a href="https://github.com/mlazarov/supervisord-monitor#troubleshooting" target="_blank">check this guide</a></td></tr>';
-								continue;
-						}
-
 						$pid = $uptime = '&nbsp;';
 						$status = $item['statename'];
 						if($status=='RUNNING'){
@@ -136,6 +137,7 @@
 							<td class="process-state">
 								<?php echo $alert_button;?>
 								<span class="label label-<?php echo $class;?>"><?php echo $status;?></span>
+								<?php if($log_note){ ?><small class="stderr-note"><?php echo $log_note; ?></small><?php } ?>
 								<?php if($status=='RUNNING'){ ?><span class="process-uptime"><?php echo $uptime;?></span><?php } ?>
 							</td>
 							<td class="process-actions">
