@@ -1,14 +1,4 @@
 <?php
-if (!function_exists('each')) {
-    function each(&$array) {
-        $key = key($array);
-        if ($key === null) return false;
-        $value = current($array);
-        next($array);
-        return [1 => $value, 'value' => $value, 0 => $key, 'key' => $key];
-    }
-}
-
 
 /*
  *---------------------------------------------------------------
@@ -28,7 +18,9 @@ if (!function_exists('each')) {
  * NOTE: If you change these, also change the error_reporting() code below
  *
  */
-define('ENVIRONMENT', 'production');
+if (!defined('ENVIRONMENT')) {
+    define('ENVIRONMENT', 'production');
+}
 /*
  *---------------------------------------------------------------
  * ERROR REPORTING

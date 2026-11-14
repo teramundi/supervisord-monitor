@@ -1,5 +1,9 @@
 {
-	"name": "mlazarov/supervisord-monitor",
-	"description": "Supervisord Multi Server Monitoring Tool",
-	"license": "MIT"
+    "name": "teramundi/supervisord-monitor",
+    "description": "Supervisord Multi Server Monitoring Tool",
+    "license": "MIT",
+    "require": {
+        "php": "^8.5",
+        "ext-xml": "*"
+    }
 }

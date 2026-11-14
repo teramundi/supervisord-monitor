@@ -27,6 +27,9 @@
  * @link		http://codeigniter.com/user_guide/libraries/input.html
  */
 class CI_Input {
+	public $security;
+	public $uni;
+
 
 	/**
 	 * IP address of the current user

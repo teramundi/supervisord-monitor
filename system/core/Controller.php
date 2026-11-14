@@ -27,6 +27,8 @@
  * @author		ExpressionEngine Dev Team
  * @link		http://codeigniter.com/user_guide/general/controllers.html
  */
+// CodeIgniter injects configured services as properties at runtime.
+#[AllowDynamicProperties]
 class CI_Controller {
 
 	private static $instance;

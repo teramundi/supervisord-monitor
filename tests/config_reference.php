@@ -3,7 +3,7 @@
 if (!isset($commonSource)) {
     $commonSource = file_get_contents(__DIR__ . '/../system/core/Common.php');
 }
-error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+error_reporting(E_ALL);
 set_error_handler(function ($severity, $message, $file, $line) {
     if (!(error_reporting() & $severity)) return false;
     throw new ErrorException($message, 0, $severity, $file, $line);

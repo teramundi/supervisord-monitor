@@ -191,18 +191,18 @@ class CI_Xmlrpcs extends CI_Xmlrpc
 		$parser = xml_parser_create($this->xmlrpc_defencoding);
 		$parser_object = new XML_RPC_Message("filler");
 
-		$parser_object->xh[$parser]					= array();
-		$parser_object->xh[$parser]['isf']			= 0;
-		$parser_object->xh[$parser]['isf_reason']	= '';
-		$parser_object->xh[$parser]['params']		= array();
-		$parser_object->xh[$parser]['stack']		= array();
-		$parser_object->xh[$parser]['valuestack']	= array();
-		$parser_object->xh[$parser]['method']		= '';
+		$parser_object->xh[is_object($parser) ? spl_object_id($parser) : (int) $parser]					= array();
+		$parser_object->xh[is_object($parser) ? spl_object_id($parser) : (int) $parser]['isf']			= 0;
+		$parser_object->xh[is_object($parser) ? spl_object_id($parser) : (int) $parser]['isf_reason']	= '';
+		$parser_object->xh[is_object($parser) ? spl_object_id($parser) : (int) $parser]['params']		= array();
+		$parser_object->xh[is_object($parser) ? spl_object_id($parser) : (int) $parser]['stack']		= array();
+		$parser_object->xh[is_object($parser) ? spl_object_id($parser) : (int) $parser]['valuestack']	= array();
+		$parser_object->xh[is_object($parser) ? spl_object_id($parser) : (int) $parser]['method']		= '';
 
-		xml_set_object($parser, $parser_object);
+
 		xml_parser_set_option($parser, XML_OPTION_CASE_FOLDING, true);
-		xml_set_element_handler($parser, 'open_tag', 'closing_tag');
-		xml_set_character_data_handler($parser, 'character_data');
+		xml_set_element_handler($parser, array($parser_object, 'open_tag'), array($parser_object, 'closing_tag'));
+		xml_set_character_data_handler($parser, array($parser_object, 'character_data'));
 		//xml_set_default_handler($parser, 'default_handler');
 
 
@@ -218,27 +218,27 @@ class CI_Xmlrpcs extends CI_Xmlrpc
 			sprintf('XML error: %s at line %d',
 				xml_error_string(xml_get_error_code($parser)),
 				xml_get_current_line_number($parser)));
-			xml_parser_free($parser);
+
 		}
-		elseif ($parser_object->xh[$parser]['isf'])
+		elseif ($parser_object->xh[is_object($parser) ? spl_object_id($parser) : (int) $parser]['isf'])
 		{
 			return new XML_RPC_Response(0, $this->xmlrpcerr['invalid_return'], $this->xmlrpcstr['invalid_return']);
 		}
 		else
 		{
-			xml_parser_free($parser);
 
-			$m = new XML_RPC_Message($parser_object->xh[$parser]['method']);
+
+			$m = new XML_RPC_Message($parser_object->xh[is_object($parser) ? spl_object_id($parser) : (int) $parser]['method']);
 			$plist='';
 
-			for ($i=0; $i < count($parser_object->xh[$parser]['params']); $i++)
+			for ($i=0; $i < count($parser_object->xh[is_object($parser) ? spl_object_id($parser) : (int) $parser]['params']); $i++)
 			{
 				if ($this->debug === TRUE)
 				{
-					$plist .= "$i - " .  print_r(get_object_vars($parser_object->xh[$parser]['params'][$i]), TRUE). ";\n";
+					$plist .= "$i - " .  print_r(get_object_vars($parser_object->xh[is_object($parser) ? spl_object_id($parser) : (int) $parser]['params'][$i]), TRUE). ";\n";
 				}
 
-				$m->addParam($parser_object->xh[$parser]['params'][$i]);
+				$m->addParam($parser_object->xh[is_object($parser) ? spl_object_id($parser) : (int) $parser]['params'][$i]);
 			}
 
 			if ($this->debug === TRUE)
@@ -381,7 +381,7 @@ class CI_Xmlrpcs extends CI_Xmlrpc
 			return call_user_func($this->methods[$methName]['function'], $m);
 		}
 	}
-	
+
 	// --------------------------------------------------------------------
 
 	/**
@@ -409,7 +409,7 @@ class CI_Xmlrpcs extends CI_Xmlrpc
 		$v->addArray($output);
 		return new XML_RPC_Response($v);
 	}
-	
+
 	// --------------------------------------------------------------------
 
 	/**
@@ -480,7 +480,7 @@ class CI_Xmlrpcs extends CI_Xmlrpc
 			return new XML_RPC_Response(0, $this->xmlrpcerr['introspect_unknown'], $this->xmlrpcstr['introspect_unknown']);
 		}
 	}
-	
+
 	// --------------------------------------------------------------------
 
 	/**
@@ -536,8 +536,8 @@ class CI_Xmlrpcs extends CI_Xmlrpc
 	 */
 	function multicall_error($err)
 	{
-		$str  = is_string($err) ? $this->xmlrpcstr["multicall_${err}"] : $err->faultString();
-		$code = is_string($err) ? $this->xmlrpcerr["multicall_${err}"] : $err->faultCode();
+		$str  = is_string($err) ? $this->xmlrpcstr["multicall_{$err}"] : $err->faultString();
+		$code = is_string($err) ? $this->xmlrpcerr["multicall_{$err}"] : $err->faultCode();
 
 		$struct['faultCode'] = new XML_RPC_Values($code, 'int');
 		$struct['faultString'] = new XML_RPC_Values($str, 'string');
@@ -565,7 +565,7 @@ class CI_Xmlrpcs extends CI_Xmlrpc
 			return $this->multicall_error('nomethod');
 		}
 
-		list($scalar_type,$scalar_value)=each($methName->me);
+		$scalar_type = key($methName->me); $scalar_value = current($methName->me); next($methName->me);
 		$scalar_type = $scalar_type == $this->xmlrpcI4 ? $this->xmlrpcInt : $scalar_type;
 
 		if ($methName->kindOf() != 'scalar' OR $scalar_type != 'string')
@@ -585,7 +585,7 @@ class CI_Xmlrpcs extends CI_Xmlrpc
 			return $this->multicall_error('notarray');
 		}
 
-		list($a,$b)=each($params->me);
+		$a = key($params->me); $b = current($params->me); next($params->me);
 		$numParams = count($b);
 
 		$msg = new XML_RPC_Message($scalar_value);

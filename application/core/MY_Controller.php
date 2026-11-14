@@ -3,7 +3,9 @@ class MY_Controller extends CI_Controller{
 
 	public function _request($server,$method,$request=array()){
 		$servers = $this->config->item('supervisor_servers');
-		if(!$servers[$server]) die("Invalid server: ".$server);
+		if (!isset($servers[$server])) {
+            show_error("Unknown Supervisor server.", 404);
+        }
 		
 		$config = $servers[$server];
 		
