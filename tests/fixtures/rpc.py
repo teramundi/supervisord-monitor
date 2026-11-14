@@ -13,8 +13,12 @@ class Supervisor:
                      description='pid %s, uptime 0:01:00' % self.pid, pid=self.pid if self.running else 0,
                      stderr_logfile='/tmp/fixture.err', start=int(time.time()))]
     def readProcessStderrLog(self, name, offset, length): return self.log
-    def startProcess(self, name, wait=True): self.running=True; self.pid+=1; return True
-    def stopProcess(self, name, wait=True): self.running=False; return True
+    def startProcess(self, name, wait=True):
+        if name == 'failing': raise Fault(10, 'SPAWN_ERROR: fixture failure')
+        self.running=True; self.pid+=1; return True
+    def stopProcess(self, name, wait=True):
+        if name == 'failing-stop': raise Fault(60, 'NOT_RUNNING: fixture failure')
+        self.running=False; return True
     def startAllProcesses(self, wait=True): self.startProcess('worker'); return []
     def stopAllProcesses(self, wait=True): self.stopProcess('worker'); return []
     def clearProcessLogs(self, name): self.log=''; return True

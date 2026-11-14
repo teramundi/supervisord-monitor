@@ -47,7 +47,9 @@
 	
 
 	<div class="container">
-	
+        <?php if (!empty($notice)) { ?>
+        <div role="status" class="alert alert-<?php echo $notice['type'] === 'success' ? 'success' : 'error'; ?>"><?php echo htmlspecialchars($notice['message'], ENT_QUOTES, 'UTF-8'); ?></div>
+        <?php } ?>
 		<?php
 		if($muted && $this->config->item('enable_alarm')){
 			echo '<div class="row"><div class="span4 offset4 label label-important" style="padding:10px;margin-bottom:20px;text-align:center;">';

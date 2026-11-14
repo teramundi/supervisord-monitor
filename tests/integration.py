@@ -37,9 +37,11 @@ for prefix in ('', '/monitor'):
     for operation, state in [('stop', 'STOPPED'), ('start', 'RUNNING'), ('restart', 'RUNNING')]:
         body, url = perform(prefix + '/control/' + operation + '/fixture/worker')
         assert state in body and url.endswith(prefix + '/'), (operation, state, url)
+        assert 'completed.' in body, re.findall(r'<div role="status"[^>]*>(.*?)</div>', body)
     for operation, state in [('stopall', 'STOPPED'), ('startall', 'RUNNING'), ('restartall', 'RUNNING')]:
         body, url = perform(prefix + '/control/' + operation + '/fixture')
         assert state in body and url.endswith(prefix + '/'), (operation, state, url)
+        assert 'completed.' in body, re.findall(r'<div role="status"[^>]*>(.*?)</div>', body)
     body, _ = request(prefix + '/?mute=1')
     assert 'Sound muted' in body
     body, _ = request(prefix + '/?mute=-1')
@@ -48,4 +50,10 @@ for prefix in ('', '/monitor'):
     request(prefix + '/control/start/fixture/worker', 405)
     request(prefix + '/control/start/fixture/worker', 403, b'')
     request(prefix + '/control/start/fixture/worker', 403, b'monitor_csrf=wrong')
+body, _ = perform('/control/start/fixture/failing')
+assert 'failed:' in body and 'SPAWN_ERROR' in body
+body, _ = request('/')
+assert 'SPAWN_ERROR' not in body, 'result messages must be one-shot'
+body, _ = perform('/control/restart/fixture/failing-stop')
+assert 'Restart (stop phase)' in body and 'failed:' in body
 print(f'{checks} HTTP checks passed at root and /monitor/.')

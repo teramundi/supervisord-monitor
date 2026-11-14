@@ -14,6 +14,9 @@ class Welcome extends MY_Controller {
 			Redirect();
 		}
 
+		$data['notice'] = isset($_SESSION['monitor_notice']) ? $_SESSION['monitor_notice'] : null;
+        unset($_SESSION['monitor_notice']);
+
 		$data['muted'] = $this->input->cookie('mute');
 
 		$this->load->helper('date');

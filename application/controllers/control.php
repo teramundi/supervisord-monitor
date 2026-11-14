@@ -12,36 +12,49 @@ class Control extends MY_Controller{
         }
     }
 
-	function Start($server,$worker){
-		$this->_request($server,'startProcess',array($worker,1));
-		Redirect('/');
-	}
-	function Startall($server){
-		$this->_request($server,'startAllProcesses',array(1));
-		Redirect('/');
-	}
-	function Stop($server,$worker){
-		$this->_request($server,'stopProcess',array($worker,1));
-		Redirect('/');
-	}
-	function Stopall($server){
-		$this->_request($server,'stopAllProcesses',array(1));
-		Redirect('/');
-	}
-	function Restart($server,$worker){
-		$this->_request($server,'stopProcess',array($worker,1));
-		sleep(2);
-		$this->_request($server,'startProcess',array($worker,1));
-		Redirect('/');
-	}
-	function Restartall($server){
-		$this->_request($server,'stopAllProcesses',array(1));
-		sleep(2);
-		$this->_request($server,'startAllProcesses',array(1));
-		Redirect('/');
-	}
-	function Clear($server,$worker){
-		$this->_request($server,'clearProcessLogs',array($worker));
-		Redirect('/');
-	}
+    private function failed($response) {
+        if (is_array($response) && isset($response['error'])) return (string) $response['error'];
+        // The legacy XML-RPC decoder may normalize booleans to strings.
+        if ($response === true || $response === 1 || $response === '1') return null;
+        if (is_array($response)) {
+            foreach ($response as $item) {
+                if (!is_array($item) || !isset($item['status']) || (string) $item['status'] !== '80') {
+                    return 'One or more processes rejected the command.';
+                }
+            }
+            return null;
+        }
+        return 'Unexpected response from Supervisor.';
+    }
+    private function finish($server, $action, $response) {
+        $error = $this->failed($response);
+        $_SESSION['monitor_notice'] = array('type' => $error === null ? 'success' : 'error',
+            'message' => $action . ' on ' . $server . ($error === null ? ' completed.' : ' failed: ' . $error));
+        Redirect('/');
+    }
+    function Start($server, $worker) {
+        $this->finish($server, 'Start ' . $worker, $this->_request($server, 'startProcess', array($worker, true)));
+    }
+    function Stop($server, $worker) {
+        $this->finish($server, 'Stop ' . $worker, $this->_request($server, 'stopProcess', array($worker, true)));
+    }
+    function Clear($server, $worker) {
+        $this->finish($server, 'Clear logs for ' . $worker, $this->_request($server, 'clearProcessLogs', array($worker)));
+    }
+    function Startall($server) {
+        $this->finish($server, 'Start all', $this->_request($server, 'startAllProcesses', array(true)));
+    }
+    function Stopall($server) {
+        $this->finish($server, 'Stop all', $this->_request($server, 'stopAllProcesses', array(true)));
+    }
+    function Restart($server, $worker) {
+        $stopped = $this->_request($server, 'stopProcess', array($worker, true));
+        if ($this->failed($stopped) !== null) $this->finish($server, 'Restart (stop phase)', $stopped);
+        $this->finish($server, 'Restart ' . $worker, $this->_request($server, 'startProcess', array($worker, true)));
+    }
+    function Restartall($server) {
+        $stopped = $this->_request($server, 'stopAllProcesses', array(true));
+        if ($this->failed($stopped) !== null) $this->finish($server, 'Restart all (stop phase)', $stopped);
+        $this->finish($server, 'Restart all', $this->_request($server, 'startAllProcesses', array(true)));
+    }
 }
