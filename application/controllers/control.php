@@ -1,5 +1,17 @@
 <?php
 class Control extends MY_Controller{
+    public function __construct() {
+        parent::__construct();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Allow: POST');
+            show_error('Control actions require POST.', 405);
+        }
+        $token = $this->input->post('monitor_csrf');
+        if (!is_string($token) || !hash_equals($this->_csrf_token(), $token)) {
+            show_error('Invalid or expired action token. Refresh the dashboard and retry.', 403);
+        }
+    }
+
 	function Start($server,$worker){
 		$this->_request($server,'startProcess',array($worker,1));
 		Redirect('/');

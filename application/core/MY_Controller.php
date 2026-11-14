@@ -1,5 +1,16 @@
 <?php
 class MY_Controller extends CI_Controller{
+    public function __construct() {
+        parent::__construct();
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start(array('name' => 'monitor_session', 'cookie_httponly' => true,
+                'cookie_secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+                'cookie_samesite' => 'Lax', 'use_strict_mode' => true));
+        }
+        if (!isset($_SESSION['monitor_csrf'])) $_SESSION['monitor_csrf'] = bin2hex(random_bytes(32));
+    }
+    public function _csrf_token() { return $_SESSION['monitor_csrf']; }
+
 
 	public function _request($server,$method,$request=array()){
 		$servers = $this->config->item('supervisor_servers');

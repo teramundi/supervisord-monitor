@@ -3,15 +3,16 @@ import http.cookiejar
 import re
 import urllib.request
 import urllib.error
+import urllib.parse
 
 base = 'http://127.0.0.1:18085'
 client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 checks = 0
 
-def request(path, expected=200):
+def request(path, expected=200, data=None):
     global checks
     try:
-        response = client.open(base + path, timeout=10)
+        response = client.open(base + path, data=data, timeout=10)
     except urllib.error.HTTPError as e:
         response = e
     body = response.read().decode()
@@ -21,6 +22,11 @@ def request(path, expected=200):
     checks += 1
     return body, response.url
 
+def perform(path):
+    body, _ = request('/monitor/' if path.startswith('/monitor/') else '/')
+    token = re.search(r'name="monitor_csrf" value="([a-f0-9]+)"', body).group(1)
+    return request(path, data=urllib.parse.urlencode({'monitor_csrf': token}).encode())
+
 for prefix in ('', '/monitor'):
     body, _ = request(prefix + '/')
     assert 'fixture' in body and 'worker' in body and 'RUNNING' in body
@@ -28,16 +34,18 @@ for prefix in ('', '/monitor'):
     assert prefix + '/control/stop/fixture/worker' in body
     assert 'XML data received' not in body
     request(prefix + '/css/custom.css')
-    for action, state in [('stop', 'STOPPED'), ('start', 'RUNNING'), ('restart', 'RUNNING')]:
-        body, url = request(prefix + '/control/' + action + '/fixture/worker')
-        assert state in body and url.endswith(prefix + '/'), (action, state, url)
-    for action, state in [('stopall', 'STOPPED'), ('startall', 'RUNNING'), ('restartall', 'RUNNING')]:
-        body, url = request(prefix + '/control/' + action + '/fixture')
-        assert state in body and url.endswith(prefix + '/'), (action, state, url)
+    for operation, state in [('stop', 'STOPPED'), ('start', 'RUNNING'), ('restart', 'RUNNING')]:
+        body, url = perform(prefix + '/control/' + operation + '/fixture/worker')
+        assert state in body and url.endswith(prefix + '/'), (operation, state, url)
+    for operation, state in [('stopall', 'STOPPED'), ('startall', 'RUNNING'), ('restartall', 'RUNNING')]:
+        body, url = perform(prefix + '/control/' + operation + '/fixture')
+        assert state in body and url.endswith(prefix + '/'), (operation, state, url)
     body, _ = request(prefix + '/?mute=1')
     assert 'Sound muted' in body
     body, _ = request(prefix + '/?mute=-1')
     assert 'Sound muted' not in body
-    request(prefix + '/control/clear/fixture/worker')
-    request(prefix + '/control/start/unknown/worker', 404)
+    perform(prefix + '/control/clear/fixture/worker')
+    request(prefix + '/control/start/fixture/worker', 405)
+    request(prefix + '/control/start/fixture/worker', 403, b'')
+    request(prefix + '/control/start/fixture/worker', 403, b'monitor_csrf=wrong')
 print(f'{checks} HTTP checks passed at root and /monitor/.')

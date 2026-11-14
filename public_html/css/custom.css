@@ -149,3 +149,5 @@ body{
   display: block;
   color: #666;
 }
+
+.monitor-control { display: inline-block; margin: 0; }

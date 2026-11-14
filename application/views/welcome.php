@@ -80,9 +80,9 @@
 						if(!isset($procs['error'])){
 						?>
 						<span class="server-btns pull-right">
-							<a href="<?php echo site_url('/control/stopall/'.$name); ?>" class="btn btn-mini btn-inverse" type="button"><i class="icon-stop icon-white"></i> Stop all</a>
-							<a href="<?php echo site_url('/control/startall/'.$name); ?>" class="btn btn-mini btn-success" type="button"><i class="icon-play icon-white"></i> Start all</a>
-							<a href="<?php echo site_url('/control/restartall/'.$name); ?>" class="btn btn-mini btn-primary" type="button"><i class="icon icon-refresh icon-white"></i> Restart all</a>
+							<?php echo monitor_control('stopall', $name, null, '<i class="icon-stop icon-white"></i> Stop all', 'btn btn-mini btn-inverse'); ?>
+							<?php echo monitor_control('startall', $name, null, '<i class="icon-play icon-white"></i> Start all', 'btn btn-mini btn-success'); ?>
+							<?php echo monitor_control('restartall', $name, null, '<i class="icon icon-refresh icon-white"></i> Restart all', 'btn btn-mini btn-primary'); ?>
 						</span>
 						<?php
 						}
@@ -153,10 +153,10 @@
 								</div//-->
 								<div class="actions">
 									<?php if($status=='RUNNING'){ ?>
-									<a href="<?php echo site_url('/control/stop/'.$name.'/'.$item_name);?>" class="btn btn-mini btn-inverse" type="button"><i class="icon-stop icon-white"></i></a>
-									<a href="<?php echo site_url('/control/restart/'.$name.'/'.$item_name);?>" class="btn btn-mini btn-inverse" type="button"><i class="icon-refresh icon-white"></i></a>
+									<?php echo monitor_control('stop', $name, $item_name, '<i class="icon-stop icon-white"></i>', 'btn btn-mini btn-inverse'); ?>
+									<?php echo monitor_control('restart', $name, $item_name, '<i class="icon-refresh icon-white"></i>', 'btn btn-mini btn-inverse'); ?>
 									<?php } if($status=='STOPPED' || $status == 'EXITED' || $status=='FATAL'){ ?>
-									<a href="<?php echo site_url('/control/start/'.$name.'/'.$item_name);?>" class="btn btn-mini btn-success" type="button"><i class="icon-play icon-white"></i></a>
+									<?php echo monitor_control('start', $name, $item_name, '<i class="icon-play icon-white"></i>', 'btn btn-mini btn-success'); ?>
 									<?php } ?>
 								</div>
 							</td>
@@ -204,7 +204,7 @@
 		$content+= '</form></div>';
 		<?php } ?>
 		$content+= '<div class="pull-right"><a href="#" onclick="$(document.getElementById(\''+$popover_id+'\')).popover(\'hide\');startTimer();return false;" class="btn btn-small btn-primary">Fechar</a>&nbsp;&nbsp;';
-		$content+= '<a href="'+$(this).attr('href')+'" class="btn btn-small btn-danger">Clear</a> &nbsp; </div>';
+		$content+= '<form class="monitor-control" method="post" action="'+$(this).attr('href')+'"><input type="hidden" name="monitor_csrf" value="'+<?php echo json_encode($CI->_csrf_token()); ?>+'"><button type="submit" class="btn btn-small btn-danger">Clear</button></form> &nbsp; </div>';
 		return $content;
 	}
 		$('.pop').popover(

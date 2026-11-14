@@ -7,6 +7,7 @@ if (!isset($sources)) {
         'config' => file_get_contents(__DIR__ . '/../system/core/Config.php'),
     );
 }
+require_once __DIR__ . '/../application/helpers/monitor_helper.php';
 error_reporting(E_ALL);
 set_error_handler(function ($severity, $message, $file, $line) {
     if (!(error_reporting() & $severity)) return false;
@@ -30,6 +31,7 @@ class FakeMonitor {
     public $logResult;
     public $calls = 0;
     function __construct() { $this->config = new FakeConfig(); }
+    function _csrf_token() { return 'test-token'; }
     function _request($server, $method, $args) { $this->calls++; return $this->logResult; }
     function render($source, $list, $version, $cfg) {
         $muted = false;
