@@ -25,10 +25,11 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-		  <a class="brand" href="<?php echo site_url('');?>">Support Center</a>
-          <div class="nav-collapse collapse">
-            <ul class="nav">
+		  <a class="brand" href="<?php echo site_url('');?>">Supervisor Monitor</a>
+		  <div class="nav-collapse collapse">
+			<ul class="nav">
 			<li class="active"><a href="<?php echo site_url();?>">Home</a></li>
+			<?php if($this->config->item('enable_alarm')){ ?>
               <li><a href="?mute=<?php echo ($muted?-1:1);?>"><i class="icon-music icon-white"></i>&nbsp;<?php
 			if($muted){
 				echo "Unmute";
@@ -36,9 +37,9 @@
 				echo "Mute";
 			}
 		;?></a></li>
+			<?php } ?>
 		<li><a href="<?php echo site_url();?>">Refresh <b id="refresh">(<?php echo $this->config->item('refresh');?>)</b> &nbsp;</a></li>
-              <li><a href="mailto:martin@lazarov.bg">Contact</a></li>
-            </ul>
+			</ul>
           </div><!--/.nav-collapse -->
         </div>
       </div>
@@ -48,7 +49,7 @@
 	<div class="container">
 	
 		<?php
-		if($muted){
+		if($muted && $this->config->item('enable_alarm')){
 			echo '<div class="row"><div class="span4 offset4 label label-important" style="padding:10px;margin-bottom:20px;text-align:center;">';
 			echo 'Sound muted for '.timespan(time(),$muted).' <span class="pull-right"><a href="?mute=-1" style="color:white;"><i class="icon-music icon-white"></i> Unmute</a></span></div></div>';
 		}
@@ -67,8 +68,13 @@
 					$ui_url = $base_url . $parsed_url['host'] . ':' . $cfg[$name]['port']. '/';
 				?>
 				<div class="span<?php echo ($this->config->item('supervisor_cols')==2?'6':'4');?>">
-				<table class="table table-bordered table-condensed table-striped">
-					<tr><th colspan="4">
+					<table class="table table-bordered table-condensed table-striped monitor-table">
+						<colgroup>
+							<col class="col-process" />
+							<col class="col-state" />
+							<col class="col-actions" />
+						</colgroup>
+					<tr><th colspan="3">
 						<a href="<?php echo $ui_url; ?>"><?php echo $name; ?></a> <?php if($this->config->item('show_host')){ ?><i><?php echo $parsed_url['host']; ?></i><?php } ?>
 						<?php
 						if(isset($cfg[$name]['username'])){echo '<i class="icon-lock icon-green" style="color:blue" title="Authenticated server connection"></i>';}
@@ -92,12 +98,16 @@
 						else $item_name = $item['name'];
 						
 						$check = $CI->_request($name,'readProcessStderrLog',array($item_name,-1000,0));
-						if(is_array($check)) $check = print_r($check,1);
+						// redirect_stderr=true intentionally has no separate stderr logfile.
+						if(is_array($check) && isset($check['error']) && $check['error'] == 'NO_FILE'){
+							$check = '';
+						}
+						elseif(is_array($check)) $check = print_r($check,1);
 						
 						if(!is_array($item)){
 								// Not having array means that we have error.
-								echo '<tr><td colspan="4">'.$item.'</td></tr>';
-								echo '<tr><td colspan="4">For Troubleshooting <a href="https://github.com/mlazarov/supervisord-monitor#troubleshooting" target="_blank">check this guide</a></td></tr>';
+								echo '<tr><td colspan="3">'.$item.'</td></tr>';
+								echo '<tr><td colspan="3">For Troubleshooting <a href="https://github.com/mlazarov/supervisord-monitor#troubleshooting" target="_blank">check this guide</a></td></tr>';
 								continue;
 						}
 
@@ -113,21 +123,22 @@
 						else $class = 'error';
 
 						$uptime = str_replace("uptime ","",$uptime);
+						$alert_button = '';
+						if($check){
+							$alert = true;
+							$alert_button = '<a href="'.site_url('/control/clear/'.$name.'/'.$item_name).'" id="'.$name.'_'.$item_name.
+									'" onclick="return false" data-toggle="popover" data-message="'.htmlspecialchars($check).'" data-original-title="'.
+									$item_name.'@'.$name.'" class="pop btn btn-mini btn-danger process-alert"><img src="' . base_url('/img/alert_icon.png') . '" /></a>';
+						}
 						?>
-						<tr>
-							<td><?php
-								echo $item_name;
-								if($check){
-									$alert = true;
-									echo '<span class="pull-right"><a href="'.site_url('/control/clear/'.$name.'/'.$item_name).'" id="'.$name.'_'.$item_name.
-											'" onclick="return false" data-toggle="popover" data-message="'.htmlspecialchars($check).'" data-original-title="'.
-											$item_name.'@'.$name.'" class="pop btn btn-mini btn-danger"><img src="' . base_url('/img/alert_icon.png') . '" /></a></span>';
-								}
-								?>
+						<tr class="process-row<?php echo ($status=='FATAL' ? ' process-fatal' : '');?>">
+							<td class="process-name"><?php echo $item_name;?></td>
+							<td class="process-state">
+								<?php echo $alert_button;?>
+								<span class="label label-<?php echo $class;?>"><?php echo $status;?></span>
+								<?php if($status=='RUNNING'){ ?><span class="process-uptime"><?php echo $uptime;?></span><?php } ?>
 							</td>
-							<td width="10"><span class="label label-<?php echo $class;?>"><?php echo $status;?></span></td>
-							<td width="80" style="text-align:right"><?php echo $uptime;?></td>
-							<td style="width:1%">
+							<td class="process-actions">
 								<!--div class="btn-group">
 									<button class="btn btn-mini">Action</button>
 									<button class="btn btn-mini dropdown-toggle" data-toggle="dropdown">
@@ -162,7 +173,7 @@
 				if($alert){
 					echo '<title>!!! WARNING !!!</title>';
 				}else{
-					echo '<title>Support center</title>';
+				echo '<title>Supervisor Monitor</title>';
 				}
 				
 				?>
@@ -180,44 +191,66 @@
 		$time = new Date();
 		$message = $(this).data('message')+"\n"+$time+"\n"+$time.toDateString();
 		$title = $(this).data('original-title');
+		$popover_id = $(this).attr('id');
 		$content = '<div class="well" style="padding:20px;">'+nl2br($message)+'</div>';
+		<?php if($this->config->item('redmine_url') && strpos($this->config->item('redmine_url'), 'redmine.url') === false){ ?>
 		$content+= '<div class="pull-left"><form method="get" action="<?php echo $this->config->item('redmine_url');?>" style="display:inline" target="_blank">';
 		$content+= '<input type="hidden" name="issue[subject]" value="'+$title+'"/>';
 		$content+= '<input type="hidden" name="issue[description]" value="'+$message+'"/>';
 		$content+= '<input type="hidden" name="issue[assigned_to_id]" value="<?php echo $this->config->item('redmine_assigne_id');?>"/>';
 		$content+= '<input type="submit" class="btn btn-small btn-inverse" value="Start New Ticket"/>';
 		$content+= '</form></div>';
-		$content+= '<div class="pull-right"><a href="#" onclick="$(\'#'+$(this).attr('id')+'\').popover(\'hide\');startTimer();" class="btn btn-small btn-primary">ok</a>&nbsp;&nbsp;';
+		<?php } ?>
+		$content+= '<div class="pull-right"><a href="#" onclick="$(document.getElementById(\''+$popover_id+'\')).popover(\'hide\');startTimer();return false;" class="btn btn-small btn-primary">Fechar</a>&nbsp;&nbsp;';
 		$content+= '<a href="'+$(this).attr('href')+'" class="btn btn-small btn-danger">Clear</a> &nbsp; </div>';
 		return $content;
 	}
-	$('.pop').popover(
-		{content: show_content,html:true,placement: 'bottom'}
-	);
-	var $refresh = <?php echo $this->config->item('refresh');?>;
-	var $timer = false;
-	$(window).load(function() {
-		if($refresh > 0) {
-			startTimer();
+		$('.pop').popover(
+			{content: show_content,html:true,placement: 'bottom'}
+		);
+		var $refresh = parseInt(<?php echo $this->config->item('refresh');?>, 10);
+		var $timer = null;
+		var $refreshDeadline = null;
+		$(window).load(function() {
+			if($refresh > 0) {
+				startTimer();
+			}
+		});
+		$('.pop').on('hidden', function() {
+			if($refresh > 0 && !$timer) {
+				startTimer();
+			}
+		});
+		function stopTimer(showPaused){
+			if($refreshDeadline !== null) {
+				$refresh = Math.max(0, Math.ceil(($refreshDeadline - new Date().getTime()) / 1000));
+			}
+			if($timer !== null) {
+				clearTimeout($timer);
+				$timer = null;
+			}
+			$refreshDeadline = null;
+			if(showPaused !== false) {
+				$('#refresh').html('(paused)');
+			}
 		}
-  	});
-	function stopTimer(){
-		$('#refresh').html('(p)');
-		clearInterval($timer);
-	}
-	function startTimer(){
-		if($timer)  stopTimer();
-		$timer = setInterval(timer,999);
-	}
-	function timer(){
-		$refresh--;
-		$('#refresh').html('('+$refresh+')');
-		if($refresh<=0){
-			stopTimer();
-			location.href="<?php echo site_url() ?>";
+		function startTimer(){
+			if($refresh <= 0) return;
+			stopTimer(false);
+			$refreshDeadline = new Date().getTime() + ($refresh * 1000);
+			timer();
 		}
-		
-	}
+		function timer(){
+			$refresh = Math.max(0, Math.ceil(($refreshDeadline - new Date().getTime()) / 1000));
+			$('#refresh').html('('+$refresh+')');
+			if($refresh<=0){
+				$timer = null;
+				$refreshDeadline = null;
+				location.href="<?php echo site_url() ?>";
+				return;
+			}
+			$timer = setTimeout(timer,250);
+		}
 	function nl2br (str, is_xhtml) {
 		var breakTag = (is_xhtml || typeof is_xhtml === 'undefined') ? '<br ' + '/>' : '<br>';
 		return (str + '').replace(/([^>\r\n]?)(\r\n|\n\r|\r|\n)/g, '$1' + breakTag + '$2');

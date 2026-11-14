@@ -2,7 +2,13 @@ body{
 	cursor: default;
 }
 .popover {
-	max-width:	450px;
+	max-width:	760px;
+}
+
+@media (max-width: 820px) {
+	.popover {
+		max-width: calc(100vw - 40px);
+	}
 }
 .footer{ text-align:center;}
 
@@ -20,6 +26,87 @@ body{
 
 .actions {
 	display: flex;
+}
+
+/* Process list: reserve space for status, uptime and actions. */
+.monitor-table {
+	table-layout: fixed;
+	width: 100%;
+	margin-bottom: 14px;
+}
+
+.monitor-table .col-state {
+	width: 142px;
+}
+
+.monitor-table .col-actions {
+	width: 82px;
+}
+
+.monitor-table .process-name {
+	overflow-wrap: anywhere;
+	word-break: break-word;
+	line-height: 1.35;
+	vertical-align: middle;
+}
+
+.monitor-table .process-state,
+.monitor-table .process-actions {
+	white-space: nowrap;
+	vertical-align: middle;
+}
+
+.monitor-table .process-state {
+	padding-left: 10px;
+}
+
+.monitor-table .process-alert {
+	box-sizing: border-box;
+	height: 18px;
+	margin: 0 6px 0 0;
+	padding: 1px 4px;
+	vertical-align: middle;
+}
+
+.monitor-table .process-alert img {
+	width: 11px;
+	height: 11px;
+	vertical-align: top;
+}
+
+.monitor-table .process-uptime {
+	display: block;
+	margin-top: 3px;
+	color: #555;
+	font-size: 12px;
+	line-height: 14px;
+}
+
+.monitor-table .process-actions .actions {
+	justify-content: center;
+}
+
+.monitor-table td {
+	padding: 7px 6px;
+}
+
+.monitor-table tr.process-fatal td {
+	background-color: #fff7f7;
+}
+
+.monitor-table tr.process-fatal .process-state {
+	border-left: 3px solid #bd362f;
+	padding-left: 7px;
+}
+
+@media (max-width: 979px) {
+	.monitor-table .col-state {
+		width: 128px;
+	}
+
+	.monitor-table .col-actions {
+		width: 74px;
+	}
 }
 
 @media (min-width: 1800px){
