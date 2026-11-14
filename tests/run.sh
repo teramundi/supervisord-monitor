@@ -17,6 +17,7 @@ else:
 PY
 compose exec -T web php tests/regression.php
 compose exec -T web php tests/config_reference.php
+compose exec -T web php tests/diagnostics.php
 python3 tests/integration.py
 python3 - <<'PY'
 import subprocess

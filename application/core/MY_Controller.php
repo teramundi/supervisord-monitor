@@ -32,7 +32,7 @@ class MY_Controller extends CI_Controller{
 		$this->{$server}->request($request);
 
 		if(!$this->{$server}->send_request()){
-				$response['error'] = $this->{$server}->display_error();
+				$response = $this->{$server}->diagnostic();
 		}else{
 				$response = $this->{$server}->display_response();
 		}	

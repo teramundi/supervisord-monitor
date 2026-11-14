@@ -55,6 +55,13 @@ expect(strpos($out, 'https://example.test:9001/') !== false, 'Supervisor link sh
 
 $item = array('group' => 'service', 'name' => 'service', 'statename' => 'STOPPED',
     'description' => '', 'stderr_logfile' => '');
+$monitor->logResult = '';
+$out = $monitor->render($sources['view'],
+    array('offline' => array('error' => 'Connection failed'), 'node' => array($item)),
+    array('offline' => array('error' => 'offline'), 'node' => '4.2.5'),
+    array('offline' => $server, 'node' => $server));
+expect(strpos($out, 'Connection failed') !== false && strpos($out, 'service') !== false,
+    'an offline server must not hide healthy servers');
 $monitor->logResult = array('error' => 'NO_FILE');
 $out = $monitor->render($sources['view'], array('node' => array($item)), array('node' => '4.2.5'), $cfg);
 expect(strpos($out, 'NO_FILE') === false, 'missing unconfigured stderr must not raise an alert');

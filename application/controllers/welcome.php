@@ -23,7 +23,9 @@ class Welcome extends MY_Controller {
 		$servers = $this->config->item('supervisor_servers');
 		foreach($servers as $name=>$config){
 			$data['list'][$name] = $this->_request($name,'getAllProcessInfo');
-			$data['version'][$name] = $this->_request($name,'getSupervisorVersion');
+			// Avoid a second connection timeout when the server is already unavailable.
+            $data['version'][$name] = isset($data['list'][$name]['error'])
+                ? $data['list'][$name] : $this->_request($name,'getSupervisorVersion');
 		}
 		$data['cfg'] = $servers;
 		$this->load->view('welcome',$data);

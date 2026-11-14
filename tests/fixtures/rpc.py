@@ -1,4 +1,5 @@
-from xmlrpc.server import SimpleXMLRPCServer
+from xmlrpc.server import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
+from socketserver import ThreadingMixIn
 from xmlrpc.client import Fault
 import time
 
@@ -23,7 +24,26 @@ class Supervisor:
     def stopAllProcesses(self, wait=True): self.stopProcess('worker'); return []
     def clearProcessLogs(self, name): self.log=''; return True
 
-server=SimpleXMLRPCServer(('0.0.0.0',9001),allow_none=True,logRequests=False)
+class Handler(SimpleXMLRPCRequestHandler):
+    def do_POST(self):
+        if self.path in ('/unauthorized', '/forbidden'):
+            self.send_response(401 if self.path == '/unauthorized' else 403)
+            self.end_headers()
+        elif self.path == '/malformed':
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'<broken')
+        elif self.path == '/timeout':
+            time.sleep(2)
+        elif self.path == '/empty':
+            self.close_connection = True
+        else:
+            super().do_POST()
+
+class Server(ThreadingMixIn, SimpleXMLRPCServer):
+    daemon_threads = True
+
+server=Server(('0.0.0.0',9001),requestHandler=Handler,allow_none=True,logRequests=False)
 obj=Supervisor()
 for name in ('getSupervisorVersion','getAllProcessInfo','readProcessStderrLog','startProcess','stopProcess','startAllProcesses','stopAllProcesses','clearProcessLogs'):
     server.register_function(getattr(obj,name),'supervisor.'+name)
