@@ -30,6 +30,8 @@ def perform(path):
 for prefix in ('', '/monitor'):
     body, _ = request(prefix + '/')
     assert 'fixture' in body and 'worker' in body and 'RUNNING' in body
+    assert 'Restart all 1 processes on fixture?' in body
+    assert 'Stop all 1 processes on fixture?' in body
     assert prefix + '/css/custom.css' in body
     assert prefix + '/control/stop/fixture/worker' in body
     assert 'XML data received' not in body

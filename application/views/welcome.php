@@ -82,9 +82,9 @@
 						if(!isset($procs['error'])){
 						?>
 						<span class="server-btns pull-right">
-							<?php echo monitor_control('stopall', $name, null, '<i class="icon-stop icon-white"></i> Stop all', 'btn btn-mini btn-inverse'); ?>
+							<?php echo monitor_control('stopall', $name, null, '<i class="icon-stop icon-white"></i> Stop all', 'btn btn-mini btn-inverse', count($procs)); ?>
 							<?php echo monitor_control('startall', $name, null, '<i class="icon-play icon-white"></i> Start all', 'btn btn-mini btn-success'); ?>
-							<?php echo monitor_control('restartall', $name, null, '<i class="icon icon-refresh icon-white"></i> Restart all', 'btn btn-mini btn-primary'); ?>
+							<?php echo monitor_control('restartall', $name, null, '<i class="icon icon-refresh icon-white"></i> Restart all', 'btn btn-mini btn-primary', count($procs)); ?>
 						</span>
 						<?php
 						}
