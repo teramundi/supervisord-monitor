@@ -129,18 +129,18 @@
 						$alert_button = '';
 						if($check){
 							$alert = true;
-							$alert_button = '<a href="'.site_url('/control/clear/'.$name.'/'.$item_name).'" id="'.$name.'_'.$item_name.
-									'" onclick="return false" data-toggle="popover" data-message="'.htmlspecialchars($check).'" data-original-title="'.
-									$item_name.'@'.$name.'" class="pop btn btn-mini btn-danger process-alert"><img src="' . base_url('/img/alert_icon.png') . '" /></a>';
+							$alert_button = '<a href="'.htmlspecialchars(site_url('/control/clear/'.rawurlencode($name).'/'.rawurlencode($item_name)), ENT_QUOTES, 'UTF-8').'" id="'.htmlspecialchars($name.'_'.$item_name, ENT_QUOTES, 'UTF-8').
+									'" onclick="return false" data-toggle="popover" data-message="'.htmlspecialchars($check, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'" data-original-title="'.
+									htmlspecialchars($item_name.'@'.$name, ENT_QUOTES, 'UTF-8').'" class="pop btn btn-mini btn-danger process-alert"><img src="' . base_url('/img/alert_icon.png') . '" /></a>';
 						}
 						?>
 						<tr class="process-row<?php echo ($status=='FATAL' ? ' process-fatal' : '');?>">
-							<td class="process-name"><?php echo $item_name;?></td>
+							<td class="process-name"><?php echo htmlspecialchars($item_name, ENT_QUOTES, 'UTF-8');?></td>
 							<td class="process-state">
 								<?php echo $alert_button;?>
-								<span class="label label-<?php echo $class;?>"><?php echo $status;?></span>
+								<span class="label label-<?php echo $class;?>"><?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8');?></span>
 								<?php if($log_note){ ?><small class="stderr-note"><?php echo $log_note; ?></small><?php } ?>
-								<?php if($status=='RUNNING'){ ?><span class="process-uptime"><?php echo $uptime;?></span><?php } ?>
+								<?php if($status=='RUNNING'){ ?><span class="process-uptime"><?php echo htmlspecialchars($uptime, ENT_QUOTES, 'UTF-8');?></span><?php } ?>
 							</td>
 							<td class="process-actions">
 								<!--div class="btn-group">
@@ -190,28 +190,28 @@
 		<p>Powered by <a href="https://github.com/mlazarov/supervisord-monitor" target="_blank">Supervisord Monitor</a> | Page rendered in <strong>{elapsed_time}</strong> seconds</p>
 	</div>
 	<script>
-	function show_content($param){
-		stopTimer();
-		$time = new Date();
-		$message = $(this).data('message')+"\n"+$time+"\n"+$time.toDateString();
-		$title = $(this).data('original-title');
-		$popover_id = $(this).attr('id');
-		$content = '<div class="well" style="padding:20px;">'+nl2br($message)+'</div>';
-		<?php if($this->config->item('redmine_url') && strpos($this->config->item('redmine_url'), 'redmine.url') === false){ ?>
-		$content+= '<div class="pull-left"><form method="get" action="<?php echo $this->config->item('redmine_url');?>" style="display:inline" target="_blank">';
-		$content+= '<input type="hidden" name="issue[subject]" value="'+$title+'"/>';
-		$content+= '<input type="hidden" name="issue[description]" value="'+$message+'"/>';
-		$content+= '<input type="hidden" name="issue[assigned_to_id]" value="<?php echo $this->config->item('redmine_assigne_id');?>"/>';
-		$content+= '<input type="submit" class="btn btn-small btn-inverse" value="Start New Ticket"/>';
-		$content+= '</form></div>';
-		<?php } ?>
-		$content+= '<div class="pull-right"><a href="#" onclick="$(document.getElementById(\''+$popover_id+'\')).popover(\'hide\');startTimer();return false;" class="btn btn-small btn-primary">Fechar</a>&nbsp;&nbsp;';
-		$content+= '<form class="monitor-control" method="post" action="'+$(this).attr('href')+'"><input type="hidden" name="monitor_csrf" value="'+<?php echo json_encode($CI->_csrf_token()); ?>+'"><button type="submit" class="btn btn-small btn-danger">Clear</button></form> &nbsp; </div>';
-		return $content;
-	}
-		$('.pop').popover(
-			{content: show_content,html:true,placement: 'bottom'}
-		);
+    function show_content() {
+        stopTimer();
+        var trigger = $(this);
+        var content = $('<div>');
+        $('<pre>').addClass('well monitor-log').text(String(trigger.attr('data-message') || '')).appendTo(content);
+        <?php if($this->config->item('redmine_url') && strpos($this->config->item('redmine_url'), 'redmine.url') === false){ ?>
+        var ticket = $('<form>').attr({method: 'get', target: '_blank', action: <?php echo json_encode($this->config->item('redmine_url'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>}).appendTo(content);
+        $('<input>').attr({type:'hidden', name:'issue[subject]'}).val(trigger.attr('data-original-title')).appendTo(ticket);
+        $('<input>').attr({type:'hidden', name:'issue[description]'}).val(trigger.attr('data-message')).appendTo(ticket);
+        $('<input>').attr({type:'hidden', name:'issue[assigned_to_id]'}).val(<?php echo json_encode($this->config->item('redmine_assigne_id'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>).appendTo(ticket);
+        $('<button>').attr('type','submit').addClass('btn btn-small').text('Start New Ticket').appendTo(ticket);
+        <?php } ?>
+        $('<button>').attr('type','button').addClass('btn btn-small btn-primary').text('Close').on('click', function(){ trigger.popover('hide'); startTimer(); }).appendTo(content);
+        var clear = $('<form>').addClass('monitor-control').attr({method:'post', action:trigger.attr('href')}).appendTo(content);
+        $('<input>').attr({type:'hidden', name:'monitor_csrf'}).val(<?php echo json_encode($CI->_csrf_token(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>).appendTo(clear);
+        $('<button>').attr('type','submit').addClass('btn btn-small btn-danger').text('Clear').appendTo(clear);
+        return content;
+    }
+    $('.pop').popover({content:show_content, html:true, placement:'bottom', title:function(){
+        return $('<span>').text($(this).attr('data-original-title'));
+    }});
+
 		var $refresh = parseInt(<?php echo $this->config->item('refresh');?>, 10);
 		var $timer = null;
 		var $refreshDeadline = null;
@@ -255,10 +255,7 @@
 			}
 			$timer = setTimeout(timer,250);
 		}
-	function nl2br (str, is_xhtml) {
-		var breakTag = (is_xhtml || typeof is_xhtml === 'undefined') ? '<br ' + '/>' : '<br>';
-		return (str + '').replace(/([^>\r\n]?)(\r\n|\n\r|\r|\n)/g, '$1' + breakTag + '$2');
-	}
+
 	</script>
 
 </body>

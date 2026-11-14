@@ -67,6 +67,10 @@ expect(strpos($out, 'No stderr log available') !== false, 'missing configured st
 unset($item['stderr_logfile']);
 $out = $monitor->render($sources['view'], array('node' => array($item)), array('node' => '4.2.5'), $cfg);
 expect(strpos($out, 'No stderr log available') !== false, 'unknown stderr configuration must remain visible');
+$monitor->logResult = '<img src=x onerror=window.monitorInjected=1>';
+$out = $monitor->render($sources['view'], array('node' => array($item)), array('node' => '4.2.5'), $cfg);
+expect(strpos($out, '<img src=x onerror=') === false, 'log HTML must not be rendered as markup');
+expect(strpos($out, '&lt;img src=x onerror=') !== false, 'log text must be preserved');
 $monitor->logResult = array('error' => 'FAILED: log read denied');
 $out = $monitor->render($sources['view'], array('node' => array($item)), array('node' => '4.2.5'), $cfg);
 expect(strpos($out, 'FAILED: log read denied') !== false, 'other log errors must not be suppressed');

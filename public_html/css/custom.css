@@ -151,3 +151,5 @@ body{
 }
 
 .monitor-control { display: inline-block; margin: 0; }
+
+.monitor-log { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; }
