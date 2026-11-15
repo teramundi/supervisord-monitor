@@ -12,4 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run monitor tests with all errors enabled
+        env:
+          # Exercise a cold RPC startup instead of relying on runner speed.
+          RPC_STARTUP_DELAY: '2'
         run: ./tests/run.sh "${{ matrix.php }}"

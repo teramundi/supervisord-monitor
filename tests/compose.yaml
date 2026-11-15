@@ -2,10 +2,21 @@ services:
   rpc:
     image: python:3.13-alpine
     command: python /tests/fixtures/rpc.py
+    environment:
+      RPC_STARTUP_DELAY: ${RPC_STARTUP_DELAY:-0}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import xmlrpc.client; assert xmlrpc.client.ServerProxy('http://127.0.0.1:9001/RPC2').supervisor.getSupervisorVersion() == '4.2.5'"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+      start_period: 1s
     volumes:
       - .:/tests:ro
   web:
     image: php:${PHP_VERSION:-8.5}-cli
+    depends_on:
+      rpc:
+        condition: service_healthy
     working_dir: /tmp/app
     command: /bin/sh -c "cp -a /src/application /src/system /src/public_html /src/tests /tmp/app/ && cp /src/tests/fixtures/supervisor.php /tmp/app/application/config/supervisor.php && exec php -d display_errors=1 -d error_reporting=-1 -S 0.0.0.0:8080 tests/fixtures/router.php"
     volumes:

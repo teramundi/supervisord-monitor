@@ -2,6 +2,7 @@ from xmlrpc.server import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 from socketserver import ThreadingMixIn
 from xmlrpc.client import Fault
 import time
+import os
 
 class Supervisor:
     def __init__(self):
@@ -45,6 +46,7 @@ class Handler(SimpleXMLRPCRequestHandler):
 class Server(ThreadingMixIn, SimpleXMLRPCServer):
     daemon_threads = True
 
+time.sleep(float(os.environ.get('RPC_STARTUP_DELAY', '0')))
 server=Server(('0.0.0.0',9001),requestHandler=Handler,allow_none=True,logRequests=False)
 obj=Supervisor()
 for name in ('getSupervisorVersion','getAllProcessInfo','readProcessStderrLog','startProcess','stopProcess','startAllProcesses','stopAllProcesses','clearProcessLogs'):

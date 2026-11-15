@@ -227,7 +227,11 @@ XML-RPC Supervisor on an isolated Docker network. Only the web fixture is publis
 `127.0.0.1:18085`. Production hosts and credentials are not used. It checks
 individual/group controls, log clearing, mute cookies, unknown servers, static
 assets and routes at both `/` and `/monitor/`. It also lints PHP files and fails on
-reported runtime warnings/deprecations. Containers are removed after the run.
+reported runtime warnings/deprecations. The web service waits for a successful
+XML-RPC health check before starting, so slow fixture startup cannot be confused
+with an application failure. Set `RPC_STARTUP_DELAY=3` to exercise this wait;
+GitHub Actions deliberately uses a two-second delay. Containers are removed
+after the run.
 
 To keep the development dashboard open manually:
 
