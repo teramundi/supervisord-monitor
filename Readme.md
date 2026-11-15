@@ -204,10 +204,12 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-## PHP 8.5 development environment
+## PHP compatibility and development environment
 
-This fork targets PHP 8.5 and requires the XML extension. The CodeIgniter
-bootstrap retains production mode by default; tests explicitly select development
+This fork supports PHP 7.4, 8.0, 8.1, 8.2, 8.3, 8.4 and 8.5 using the same
+codebase and requires the XML and session extensions. Composer constrains PHP to
+`>=7.4 <8.6`; newer minor versions need validation before extending this range.
+The CodeIgniter bootstrap retains production mode by default; tests explicitly select development
 mode so notices, warnings and deprecations are visible. The bundled legacy
 framework includes optional components not used by this dashboard; the test suite
 covers the monitor's routes and XML-RPC client rather than every optional driver.
@@ -215,11 +217,13 @@ covers the monitor's routes and XML-RPC client rather than every optional driver
 With Docker/OrbStack and Python 3 available, run:
 
 ```sh
-./tests/run.sh
+./tests/run.sh         # PHP 8.5 (default)
+./tests/run.sh 7.4     # One specific supported version
+./tests/run.sh --all   # All seven versions, sequentially
 ```
 
-The suite starts the official PHP 8.5 image and a simulated XML-RPC Supervisor on
-an isolated Docker network. Only the web fixture is published, on
+The suite starts the official PHP image for the selected version and a simulated
+XML-RPC Supervisor on an isolated Docker network. Only the web fixture is published, on
 `127.0.0.1:18085`. Production hosts and credentials are not used. It checks
 individual/group controls, log clearing, mute cookies, unknown servers, static
 assets and routes at both `/` and `/monitor/`. It also lints PHP files and fails on
@@ -228,10 +232,17 @@ reported runtime warnings/deprecations. Containers are removed after the run.
 To keep the development dashboard open manually:
 
 ```sh
-docker compose -p monitor-php85 -f tests/compose.yaml up -d
+PHP_VERSION=8.5 docker compose -p monitor-tests -f tests/compose.yaml up -d
 # Open http://127.0.0.1:18085/
-docker compose -p monitor-php85 -f tests/compose.yaml down
+PHP_VERSION=8.5 docker compose -p monitor-tests -f tests/compose.yaml down
 ```
 
 The fixture router verifies application paths; deployment-specific Nginx and
 PHP-FPM routing should still be tested before deploying a new release.
+
+The GitHub Actions workflow runs the same suite independently for each supported
+PHP version on pushes and pull requests. Local validation on 2026-11-14 passed
+on all seven minor versions: 47 HTTP checks per version, transport failure
+scenarios, view/configuration regressions and syntax checks for 159 PHP files,
+with no reported PHP runtime warnings, notices or deprecations. This covers the
+monitor; it does not certify unused optional CodeIgniter components.

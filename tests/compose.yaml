@@ -5,7 +5,7 @@ services:
     volumes:
       - .:/tests:ro
   web:
-    image: php:8.5-cli
+    image: php:${PHP_VERSION:-8.5}-cli
     working_dir: /tmp/app
     command: /bin/sh -c "cp -a /src/application /src/system /src/public_html /src/tests /tmp/app/ && cp /src/tests/fixtures/supervisor.php /tmp/app/application/config/supervisor.php && exec php -d display_errors=1 -d error_reporting=-1 -S 0.0.0.0:8080 tests/fixtures/router.php"
     volumes:

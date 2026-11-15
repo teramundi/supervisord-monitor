@@ -3,7 +3,7 @@
     "description": "Supervisord Multi Server Monitoring Tool",
     "license": "MIT",
     "require": {
-        "php": "^8.5",
+        "php": ">=7.4 <8.6",
         "ext-xml": "*",
         "ext-session": "*"
     }
