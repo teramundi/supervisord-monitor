@@ -32,7 +32,7 @@ for prefix in ('', '/monitor'):
     assert 'fixture' in body and 'worker' in body and 'RUNNING' in body
     assert 'Restart all 1 processes on fixture?' in body
     assert 'Stop all 1 processes on fixture?' in body
-    assert prefix + '/css/custom.css' in body
+    assert re.search(re.escape(prefix + '/css/custom.css') + r'\?v=[a-f0-9]{12}', body), 'CSS fingerprint missing'
     assert prefix + '/control/stop/fixture/worker' in body
     assert 'XML data received' not in body
     request(prefix + '/css/custom.css')
@@ -58,4 +58,6 @@ body, _ = request('/')
 assert 'SPAWN_ERROR' not in body, 'result messages must be one-shot'
 body, _ = perform('/control/restart/fixture/failing-stop')
 assert 'Restart (stop phase)' in body and 'failed:' in body
+body, _ = perform('/control/clear/fixture/failing-clear')
+assert 'failed:' in body and 'service account permissions' in body and 'FAILED: failing-clear' in body
 print(f'{checks} HTTP checks passed at root and /monitor/.')

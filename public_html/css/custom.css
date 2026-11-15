@@ -153,3 +153,22 @@ body{
 .monitor-control { display: inline-block; margin: 0; }
 
 .monitor-log { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; }
+
+/* Keep POST forms in the same row as the former action links. */
+.server-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.server-identity { min-width: 0; overflow-wrap: anywhere; }
+.server-btns, .actions, .monitor-log-actions { display: flex; align-items: center; gap: 6px; }
+.server-btns { flex-wrap: wrap; }
+.monitor-table .server-btns form.monitor-control,
+.monitor-table .actions form.monitor-control,
+.monitor-log-actions form.monitor-control { display: inline-flex; margin: 0; }
+.monitor-table th { padding: 10px; }
+.monitor-log-actions { justify-content: flex-end; flex-wrap: wrap; }
+.monitor-log-dialog { width: 760px; margin-left: -380px; }
+.monitor-log-dialog .modal-body { max-height: 60vh; }
+.monitor-log-dialog .monitor-log { margin: 0; padding: 14px; max-height: 45vh; font-size: 12px; line-height: 1.6; }
+.monitor-log-dialog .log-description { color: #666; font-size: 12px; }
+.monitor-log-dialog .modal-header h3 { font-size: 17px; overflow-wrap: anywhere; padding-right: 20px; }
+@media (max-width: 800px) {
+    .monitor-log-dialog { width: auto; left: 16px; right: 16px; margin-left: 0; }
+}

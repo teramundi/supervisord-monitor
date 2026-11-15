@@ -242,7 +242,18 @@ PHP-FPM routing should still be tested before deploying a new release.
 
 The GitHub Actions workflow runs the same suite independently for each supported
 PHP version on pushes and pull requests. Local validation on 2026-11-14 passed
-on all seven minor versions: 47 HTTP checks per version, transport failure
+on all seven minor versions: 49 HTTP checks per version, transport failure
 scenarios, view/configuration regressions and syntax checks for 159 PHP files,
 with no reported PHP runtime warnings, notices or deprecations. This covers the
 monitor; it does not certify unused optional CodeIgniter components.
+
+### Log viewer and clearing
+
+The log viewer shows the latest stderr output as plain text in a scrollable
+modal. Clearing requires POST, a valid session token and a confirmation. The
+Supervisor API clears both stdout and stderr for the selected process, not just
+the displayed excerpt. The account running Supervisor must be able to remove
+and recreate files in its log directory; write access to the file alone is
+insufficient. A FAILED response is displayed with a permissions hint rather
+than being reported as success. CSS URLs include a content fingerprint so new
+layouts take effect after deployment without reusing a cached stylesheet.

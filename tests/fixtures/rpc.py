@@ -7,7 +7,7 @@ class Supervisor:
     def __init__(self):
         self.running = True
         self.pid = 100
-        self.log = '\x1b[32mfixture log\x1b[0m'
+        self.log = '\x1b[32mfixture log\x1b[0m\n' + ('info: Application ready; <sample> is plain text.\n' * 18)
     def getSupervisorVersion(self): return '4.2.5'
     def getAllProcessInfo(self):
         return [dict(name='worker', group='worker', statename='RUNNING' if self.running else 'STOPPED',
@@ -22,7 +22,9 @@ class Supervisor:
         self.running=False; return True
     def startAllProcesses(self, wait=True): self.startProcess('worker'); return []
     def stopAllProcesses(self, wait=True): self.stopProcess('worker'); return []
-    def clearProcessLogs(self, name): self.log=''; return True
+    def clearProcessLogs(self, name):
+        if name == 'failing-clear': raise Fault(91, 'FAILED: failing-clear')
+        self.log=''; return True
 
 class Handler(SimpleXMLRPCRequestHandler):
     def do_POST(self):

@@ -6,7 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link type="text/css" rel="stylesheet" href="<?php echo base_url('/css/bootstrap.min.css');?>"/>
 	<link type="text/css" rel="stylesheet" href="<?php echo base_url('/css/bootstrap-responsive.min.css');?>"/>
-	<link type="text/css" rel="stylesheet" href="<?php echo base_url('/css/custom.css');?>"/>
+	<link type="text/css" rel="stylesheet" href="<?php echo monitor_asset('/css/custom.css');?>"/>
 <script type="text/javascript" src="<?php echo base_url('/js/jquery-1.10.1.min.js');?>"></script>
 <script type="text/javascript" src="<?php echo base_url('/js/bootstrap.min.js');?>"></script>
 	<noscript>
@@ -73,23 +73,24 @@
 							<col class="col-state" />
 							<col class="col-actions" />
 						</colgroup>
-					<tr><th colspan="3">
+					<tr><th colspan="3"><div class="server-header"><div class="server-identity">
 						<a href="<?php echo htmlspecialchars($ui_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></a> <?php if($this->config->item('show_host')){ ?><i><?php echo htmlspecialchars($parsed_url['host'], ENT_QUOTES, 'UTF-8'); ?></i><?php } ?>
 						<?php
 						if(isset($cfg[$name]['username'])){echo '<i class="icon-lock icon-green" style="color:blue" title="Authenticated server connection"></i>';}
 						$server_version = is_array($version[$name]) ? 'Unavailable' : $version[$name];
 						echo '&nbsp;<i>'.htmlspecialchars($server_version, ENT_QUOTES, 'UTF-8').'</i>';
+						echo '</div>';
 						if(!isset($procs['error'])){
 						?>
-						<span class="server-btns pull-right">
+						<div class="server-btns">
 							<?php echo monitor_control('stopall', $name, null, '<i class="icon-stop icon-white"></i> Stop all', 'btn btn-mini btn-inverse', count($procs)); ?>
 							<?php echo monitor_control('startall', $name, null, '<i class="icon-play icon-white"></i> Start all', 'btn btn-mini btn-success'); ?>
 							<?php echo monitor_control('restartall', $name, null, '<i class="icon icon-refresh icon-white"></i> Restart all', 'btn btn-mini btn-primary', count($procs)); ?>
-						</span>
+						</div>
 						<?php
 						}
 						?>
-					</th></tr>
+					</div></th></tr>
 					<?php
 					$CI = &get_instance();
 					if (isset($procs['error'])) {
@@ -130,8 +131,8 @@
 						if($check){
 							$alert = true;
 							$alert_button = '<a href="'.htmlspecialchars(site_url('/control/clear/'.rawurlencode($name).'/'.rawurlencode($item_name)), ENT_QUOTES, 'UTF-8').'" id="'.htmlspecialchars($name.'_'.$item_name, ENT_QUOTES, 'UTF-8').
-									'" onclick="return false" data-toggle="popover" data-message="'.htmlspecialchars($check, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'" data-original-title="'.
-									htmlspecialchars($item_name.'@'.$name, ENT_QUOTES, 'UTF-8').'" class="pop btn btn-mini btn-danger process-alert"><img src="' . base_url('/img/alert_icon.png') . '" /></a>';
+									'" onclick="return false" data-toggle="process-log" data-message="'.htmlspecialchars($check, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'" data-original-title="'.
+									htmlspecialchars($item_name.'@'.$name, ENT_QUOTES, 'UTF-8').'" aria-label="View process log" class="pop btn btn-mini btn-danger process-alert"><img src="' . base_url('/img/alert_icon.png') . '" /></a>';
 						}
 						?>
 						<tr class="process-row<?php echo ($status=='FATAL' ? ' process-fatal' : '');?>">
@@ -189,28 +190,40 @@
 	<div class="footer">
 		<p>Powered by <a href="https://github.com/mlazarov/supervisord-monitor" target="_blank">Supervisord Monitor</a> | Page rendered in <strong>{elapsed_time}</strong> seconds</p>
 	</div>
+    <div id="log-dialog" class="modal hide fade monitor-log-dialog" tabindex="-1" role="dialog" aria-labelledby="log-dialog-title" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
+            <h3 id="log-dialog-title">Process log</h3>
+        </div>
+        <div class="modal-body"></div>
+        <div class="modal-footer monitor-log-actions"></div>
+    </div>
 	<script>
     function show_content() {
         stopTimer();
         var trigger = $(this);
-        var content = $('<div>');
+        var dialog = $('#log-dialog');
+        var content = dialog.find('.modal-body').empty();
+        var actions = dialog.find('.modal-footer').empty();
+        dialog.find('#log-dialog-title').text(trigger.attr('data-original-title'));
+        $('<p>').addClass('log-description').text('Latest stderr output. Clear logs removes both stdout and stderr logs for this process.').appendTo(content);
         $('<pre>').addClass('well monitor-log').text(String(trigger.attr('data-message') || '')).appendTo(content);
         <?php if($this->config->item('redmine_url') && strpos($this->config->item('redmine_url'), 'redmine.url') === false){ ?>
-        var ticket = $('<form>').attr({method: 'get', target: '_blank', action: <?php echo json_encode($this->config->item('redmine_url'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>}).appendTo(content);
+        var ticket = $('<form>').attr({method: 'get', target: '_blank', action: <?php echo json_encode($this->config->item('redmine_url'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>}).appendTo(actions);
         $('<input>').attr({type:'hidden', name:'issue[subject]'}).val(trigger.attr('data-original-title')).appendTo(ticket);
         $('<input>').attr({type:'hidden', name:'issue[description]'}).val(trigger.attr('data-message')).appendTo(ticket);
         $('<input>').attr({type:'hidden', name:'issue[assigned_to_id]'}).val(<?php echo json_encode($this->config->item('redmine_assigne_id'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>).appendTo(ticket);
         $('<button>').attr('type','submit').addClass('btn btn-small').text('Start New Ticket').appendTo(ticket);
         <?php } ?>
-        $('<button>').attr('type','button').addClass('btn btn-small btn-primary').text('Close').on('click', function(){ trigger.popover('hide'); startTimer(); }).appendTo(content);
-        var clear = $('<form>').addClass('monitor-control').attr({method:'post', action:trigger.attr('href')}).appendTo(content);
+        $('<button>').attr({type:'button', 'data-dismiss':'modal'}).addClass('btn').text('Close').appendTo(actions);
+        var clear = $('<form>').addClass('monitor-control').attr({method:'post', action:trigger.attr('href')}).on('submit', function(){
+            return window.confirm('Clear stdout and stderr logs for ' + trigger.attr('data-original-title') + '? This cannot be undone.');
+        }).appendTo(actions);
         $('<input>').attr({type:'hidden', name:'monitor_csrf'}).val(<?php echo json_encode($CI->_csrf_token(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>).appendTo(clear);
-        $('<button>').attr('type','submit').addClass('btn btn-small btn-danger').text('Clear').appendTo(clear);
-        return content;
+        $('<button>').attr('type','submit').addClass('btn btn-danger').text('Clear logs').appendTo(clear);
+        dialog.modal('show');
     }
-    $('.pop').popover({content:show_content, html:true, placement:'bottom', title:function(){
-        return $('<span>').text($(this).attr('data-original-title'));
-    }});
+    $('.pop').on('click', function(event){ event.preventDefault(); show_content.call(this); });
 
 		var $refresh = parseInt(<?php echo $this->config->item('refresh');?>, 10);
 		var $timer = null;
@@ -220,7 +233,7 @@
 				startTimer();
 			}
 		});
-		$('.pop').on('hidden', function() {
+		$('#log-dialog').on('hidden', function() {
 			if($refresh > 0 && !$timer) {
 				startTimer();
 			}

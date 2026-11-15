@@ -5,4 +5,4 @@ $config['enable_alarm'] = true;
 $config['show_host'] = false;
 $config['timeout'] = 1;
 $config['redmine_url'] = '';
-$config['supervisor_servers'] = array('fixture' => array('url' => 'http://rpc/RPC2', 'port' => 9001));
+$config['supervisor_servers'] = array('fixture' => array('url' => 'http://rpc/RPC2', 'port' => 9001), 'fixture-02' => array('url' => 'http://rpc/RPC2', 'port' => 9001));

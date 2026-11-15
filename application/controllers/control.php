@@ -39,7 +39,11 @@ class Control extends MY_Controller{
         $this->finish($server, 'Stop ' . $worker, $this->_request($server, 'stopProcess', array($worker, true)));
     }
     function Clear($server, $worker) {
-        $this->finish($server, 'Clear logs for ' . $worker, $this->_request($server, 'clearProcessLogs', array($worker)));
+        $response = $this->_request($server, 'clearProcessLogs', array($worker));
+        if (is_array($response) && isset($response['error']) && strpos($response['error'], 'FAILED:') === 0) {
+            $response['error'] = 'Supervisor could not remove or reopen the logs. Check the service account permissions on the log directory and files. Server response: ' . $response['error'];
+        }
+        $this->finish($server, 'Clear logs for ' . $worker, $response);
     }
     function Startall($server) {
         $this->finish($server, 'Start all', $this->_request($server, 'startAllProcesses', array(true)));
