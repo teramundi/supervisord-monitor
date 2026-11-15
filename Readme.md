@@ -261,3 +261,108 @@ and recreate files in its log directory; write access to the file alone is
 insufficient. A FAILED response is displayed with a permissions hint rather
 than being reported as success. CSS URLs include a content fingerprint so new
 layouts take effect after deployment without reusing a cached stylesheet.
+
+### Persistent log directory permissions with systemd
+
+Apply this on each host **running Supervisor**, not just on the host serving the
+PHP dashboard. Replace `supervisord.service` if your distribution uses a
+different unit name. These instructions assume the logs are stored in
+`/var/log/supervisor` and the unit has an explicit `User=` setting.
+
+Check the effective service account before changing ownership:
+
+```sh
+sudo systemctl show supervisord.service -p User -p Group -p MainPID
+sudo ps -o user,group,pid,comm -p "$(sudo systemctl show supervisord.service -p MainPID --value)"
+sudo stat -c '%a %U:%G %n' /var/log/supervisor
+```
+
+The running process account must match the unit's `User=`. If `User=` is empty,
+or Supervisor drops privileges to another account through `supervisord.conf`,
+resolve that difference before using the commands below: `LogsDirectory=` uses
+the systemd service account to determine ownership. An empty `Group=` uses the
+user's primary group.
+
+The service account needs write and search permissions on the log directory to
+remove and recreate logs, plus write access to existing log files. For a
+directory dedicated to that account, use ownership matching the service and
+mode `0755`; do not grant global write access. Inspect any failing log file
+separately rather than recursively changing unrelated files.
+
+Create a local drop-in containing:
+
+```ini
+[Service]
+LogsDirectory=supervisor
+LogsDirectoryMode=0755
+```
+
+`LogsDirectory=supervisor` refers to `/var/log/supervisor`. The drop-in lives
+under `/etc/systemd/system/`, so it remains separate from the package's vendor
+unit. See the [systemd directory settings documentation](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html#RuntimeDirectory=).
+
+#### Apply and validate without restarting Supervisor
+
+Run this script on the Supervisor host. It preserves existing drop-ins, writes
+only `30-log-directory.conf`, fixes the directory ownership immediately, reloads
+systemd's definitions and checks that the service PID and start time have not
+changed. It does not clear any logs or restart Supervisor or its child processes.
+
+```sh
+sh <<'SH'
+set -eu
+supervisor_unit=supervisord.service
+sudo systemctl is-active --quiet "$supervisor_unit"
+supervisor_user=$(sudo systemctl show "$supervisor_unit" -p User --value)
+if [ -z "$supervisor_user" ]; then
+    echo 'Set and verify the service User before applying this override.' >&2
+    exit 1
+fi
+supervisor_group=$(sudo systemctl show "$supervisor_unit" -p Group --value)
+if [ -z "$supervisor_group" ]; then
+    supervisor_group=$(id -gn "$supervisor_user")
+fi
+supervisor_pid_before=$(sudo systemctl show "$supervisor_unit" -p MainPID --value)
+supervisor_start_before=$(sudo systemctl show "$supervisor_unit" -p ExecMainStartTimestampMonotonic --value)
+
+sudo install -d -m 0755 "/etc/systemd/system/$supervisor_unit.d"
+cat <<'INI' | sudo tee "/etc/systemd/system/$supervisor_unit.d/30-log-directory.conf" >/dev/null
+[Service]
+LogsDirectory=supervisor
+LogsDirectoryMode=0755
+INI
+sudo chmod 0644 "/etc/systemd/system/$supervisor_unit.d/30-log-directory.conf"
+sudo systemctl daemon-reload
+sudo systemd-analyze verify "$supervisor_unit"
+
+# daemon-reload does not apply directory ownership to an already running service.
+sudo chown "$supervisor_user:$supervisor_group" /var/log/supervisor
+sudo chmod 0755 /var/log/supervisor
+
+sudo runuser -u "$supervisor_user" -g "$supervisor_group" -- test -w /var/log/supervisor
+sudo runuser -u "$supervisor_user" -g "$supervisor_group" -- test -x /var/log/supervisor
+test "$(sudo systemctl show "$supervisor_unit" -p LogsDirectory --value)" = supervisor
+test "$(sudo systemctl show "$supervisor_unit" -p LogsDirectoryMode --value)" = 0755
+test "$supervisor_pid_before" = "$(sudo systemctl show "$supervisor_unit" -p MainPID --value)"
+test "$supervisor_start_before" = "$(sudo systemctl show "$supervisor_unit" -p ExecMainStartTimestampMonotonic --value)"
+sudo systemctl is-active --quiet "$supervisor_unit"
+sudo systemctl show "$supervisor_unit" -p User -p Group -p LogsDirectory -p LogsDirectoryMode -p MainPID -p ActiveState
+sudo stat -c '%a %U:%G %n' /var/log/supervisor
+echo 'Validated: directory writable; Supervisor PID and start time unchanged.'
+SH
+```
+
+To check an existing file without modifying or clearing it, replace the example
+account and filename:
+
+```sh
+sudo runuser -u your_service_user -- test -w /var/log/supervisor/your-process.log
+```
+
+At the next service start, including boot, systemd will create the log directory
+if necessary and enforce the configured ownership and mode. If an existing
+directory has different ownership, systemd can also adjust ownership of its
+contents at that time. This does not continuously enforce permissions while the
+service is running: an RPM upgrade or reinstall may restore package-defined
+ownership such as `root:root`. After maintenance without a service restart,
+check the directory and reapply the ownership correction above if needed.
